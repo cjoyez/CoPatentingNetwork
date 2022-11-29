@@ -1,7 +1,4 @@
-*verifier sole application : nb_app
-*pattent family : ~*family_size
-*patent quality : nb_citing*~
-*patent innovation : granted
+
 
 *********FRANCE
 *By year
@@ -32,6 +29,10 @@ mata mattotappU=J(40,1,.)
 
 
 use "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Combined_renamed.dta",clear
+*drop dupplicates (same patent but registered in two techn_field)
+ egen aay=group(appln_id psn_name year)
+ bysort aay : keep if _n==1
+ 
 capt drop timeperiod
 gen timeperiod=1
 replace timeperiod=2 if year>1999
@@ -53,8 +54,7 @@ tab nbapp_psn
 distinct appln_id
 distinct psn_name
 distinct appln_id if nb_applicants>1 & nb_applicants<.
-*drop if nban_psn<1
-drop if nbapp_psn<1
+
 distinct appln_id
 distinct appln_id if nb_applicants>1 & nb_applicants<.
 distinct psn_name if nb_applicants>1 & nb_applicants<.
@@ -67,29 +67,20 @@ drop if psn_name==""
 encode psn_name,gen(psn_name_code)
 
 forvalues y=1979(1)2018{
-*local y=1998
 local n=`y'-1978
 preserve
-keep if year>=`y'-1 & year<=`y'+1
+keep if year==`y' | year==`y'-1
 
-*keep if year==`y'
-*techn field?
-*local field="Pharmaceuticals" 
-*keep if techn_f=="field"
-*Granted?
-*keep if granted=="Y"
 distinct psn_name
 distinct psn_name if psn_sector=="UNIVERSITY"
 
 distinct appln_id
 local nbappln=r(ndistinct)
 mata matappln[`n',]=`nbappln'
- *nw_fromlist test,node( psn_name_code ) id( appln_id )
  nw_projection, x(psn_name_code) y(appln_id)
  nwrename network test
  
  decode psn_name_code,gen(psn_name)
- *nwplot, label(psn_name)
  
  nwdegree
  nwdrop if _degree==0
@@ -103,93 +94,21 @@ gen nnodes= r(N)
 nwdegree,valued
 nwANND, 
 nwANND,valued 
-*gen cent_0 =(_degree)^(1/2)*_strength^(1/2)
-*gen cent_0 =(_degree)^(1/2)*_strength^(1/2)*((_ANND)^(1/4)*_ANNS^(1/4))
-*nwdrop if _degree==0
+
 nwcomponents,lgc
 nwdrop if _lgc!=1
 drop if _lgc!=1
 nwevcent
 run "C:\ado\plus\n\nwwevcent.do"
 nwwevcent
-*nwkatz,alpha(1)
 
-/*
-nwtomata,mat(M)
-mata eigensystemselecti(M, (1,1), comp_X=., comp_L=.)
-		*mata	mis=missing(eigenvalues(M))
-		*mata inflate=0 /*inflate matrix to avoid mata issue with eigenvalues of large matrices with low values*/
-		*mata if (mis>0) M=M:*1e+100  ; ;
-		*mata if (mis>0) inflate=1  ; ;
-*mata eigensystemselecti(M, (1,1), comp_X=., comp_L=.)
-mata eigensystemselecti(M, (2,2), comp_X2=., comp_L2=.)
-
-capt drop cent
-mata cent=Re(comp_X)
-gen cent=.
-mata st_store(.,"cent",cent)
-su cent
-mata cent2=Re(comp_X2)
-capt drop cent2
-gen cent2=.
-mata st_store(.,"cent2",cent2)
-su cent2
-corr cent cent2
-kdensity cent 
-kdensity cent2
-local maxcent=r(max)
-if `maxcent'<0 {
-replace cent=-cent
-}
-su cent
-local mincent=r(min)
-replace cent=cent+abs(`mincent')
-su cent
-*/
-
-/*
-local stop=0
-gen _ini_rank=_n
-forvalues j=1/10{
-noi di `j'
-nwANND, order(`j')
-nwANND,valued order(`j')
-local k=`j'-1
-gen cent_`j'=cent_`k'+_ANND`j'^(1/(2*`j'))*_ANNS`j'^(1/(2*`j'))
-
-sort cent_`k'
-capt drop _old_rank
-gen _old_rank=_n
-sort cent_`j'
-capt drop _new_rank
-gen _new_rank=_n
-capt drop _drank
-		gen _drank=_new_rank-_old_rank
-		sort _ini_rank
-		noi su _drank
-		local s=r(max) /*s captures max changes in rank*/
-			if `s'==0 | `j'==10 { /*rank stops to change (max delta rank=0)*/
-			noi di "rank stops to change at `j' 's order"
-		local stop=`j'
-		gen cent = cent_`j'
-		
-		}
-}
-*/
-*gen cent=cent_0
 gen cent=_wevcent
 egen cent_total=total(cent)
 gen cent_scale=cent/cent_total*100
 su cent_scale
 nwsummarize
-*nwStrengthcent
-*nwdisparity
-*nwgeodesic
+
 nwbetween
-
-
-*nwsave C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Net_FRANCE_`y',replace
-
 
   keep  psn_name_code _* psn_name _degree nnodes _strength cent cent_total cent_scale 
   nwbetween
@@ -419,6 +338,10 @@ mata mattotappU=J(40,1,.)
 
 
 use "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Combined_renamed.dta",clear
+*drop dupplicates 
+ egen aay=group(appln_id psn_name year)
+ bysort aay : keep if _n==1
+ 
 capt drop timeperiod
 gen timeperiod=1
 replace timeperiod=2 if year>1999
@@ -440,8 +363,6 @@ tab nbapp_psn
 distinct appln_id
 distinct psn_name
 distinct appln_id if nb_applicants>1 & nb_applicants<.
-*drop if nban_psn<1
-drop if nbapp_psn<1
 distinct appln_id
 distinct appln_id if nb_applicants>1 & nb_applicants<.
 distinct psn_name if nb_applicants>1 & nb_applicants<.
@@ -454,29 +375,20 @@ drop if psn_name==""
 encode psn_name,gen(psn_name_code)
 
 forvalues y=1979(1)2018{
-*local y=1998
 local n=`y'-1978
 preserve
-keep if year>=`y'-1 & year<=`y'+1
+keep if year==`y' | year==`y'-1
 
-*keep if year==`y'
-*techn field?
-*local field="Pharmaceuticals" 
-*keep if techn_f=="field"
-*Granted?
-*keep if granted=="Y"
 distinct psn_name
 distinct psn_name if psn_sector=="UNIVERSITY"
 
 distinct appln_id
 local nbappln=r(ndistinct)
 mata matappln[`n',]=`nbappln'
- *nw_fromlist test,node( psn_name_code ) id( appln_id )
  nw_projection, x(psn_name_code) y(appln_id)
  nwrename network test
  
  decode psn_name_code,gen(psn_name)
- *nwplot, label(psn_name)
  
  nwdegree
  nwdrop if _degree==0
@@ -490,93 +402,21 @@ gen nnodes= r(N)
 nwdegree,valued
 nwANND, 
 nwANND,valued 
-*gen cent_0 =(_degree)^(1/2)*_strength^(1/2)
-*gen cent_0 =(_degree)^(1/2)*_strength^(1/2)*((_ANND)^(1/4)*_ANNS^(1/4))
-*nwdrop if _degree==0
+
 nwcomponents,lgc
 nwdrop if _lgc!=1
 drop if _lgc!=1
 nwevcent
 run "C:\ado\plus\n\nwwevcent.do"
 nwwevcent
-*nwkatz,alpha(1)
 
-/*
-nwtomata,mat(M)
-mata eigensystemselecti(M, (1,1), comp_X=., comp_L=.)
-		*mata	mis=missing(eigenvalues(M))
-		*mata inflate=0 /*inflate matrix to avoid mata issue with eigenvalues of large matrices with low values*/
-		*mata if (mis>0) M=M:*1e+100  ; ;
-		*mata if (mis>0) inflate=1  ; ;
-*mata eigensystemselecti(M, (1,1), comp_X=., comp_L=.)
-mata eigensystemselecti(M, (2,2), comp_X2=., comp_L2=.)
-
-capt drop cent
-mata cent=Re(comp_X)
-gen cent=.
-mata st_store(.,"cent",cent)
-su cent
-mata cent2=Re(comp_X2)
-capt drop cent2
-gen cent2=.
-mata st_store(.,"cent2",cent2)
-su cent2
-corr cent cent2
-kdensity cent 
-kdensity cent2
-local maxcent=r(max)
-if `maxcent'<0 {
-replace cent=-cent
-}
-su cent
-local mincent=r(min)
-replace cent=cent+abs(`mincent')
-su cent
-*/
-
-/*
-local stop=0
-gen _ini_rank=_n
-forvalues j=1/10{
-noi di `j'
-nwANND, order(`j')
-nwANND,valued order(`j')
-local k=`j'-1
-gen cent_`j'=cent_`k'+_ANND`j'^(1/(2*`j'))*_ANNS`j'^(1/(2*`j'))
-
-sort cent_`k'
-capt drop _old_rank
-gen _old_rank=_n
-sort cent_`j'
-capt drop _new_rank
-gen _new_rank=_n
-capt drop _drank
-		gen _drank=_new_rank-_old_rank
-		sort _ini_rank
-		noi su _drank
-		local s=r(max) /*s captures max changes in rank*/
-			if `s'==0 | `j'==10 { /*rank stops to change (max delta rank=0)*/
-			noi di "rank stops to change at `j' 's order"
-		local stop=`j'
-		gen cent = cent_`j'
-		
-		}
-}
-*/
-*gen cent=cent_0
 gen cent=_wevcent
 egen cent_total=total(cent)
 gen cent_scale=cent/cent_total*100
 su cent_scale
 nwsummarize
-*nwStrengthcent
-*nwdisparity
-*nwgeodesic
+
 nwbetween
-
-
-*nwsave C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Net_GERMANY_`y',replace
-
 
   keep  psn_name_code _* psn_name _degree nnodes _strength cent cent_total cent_scale 
   nwbetween
@@ -775,5 +615,4 @@ count
 use "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Cent_psn_yearly_GERMANY.dta",clear
 count
 
-twoway connect centralityU year
 

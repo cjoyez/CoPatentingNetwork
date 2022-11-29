@@ -28,6 +28,13 @@ log using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\statdesc_yearly
 log on
 
 use "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Combined_renamed.dta",clear
+
+*drop dupplicates (same patent but registered in two techn_field)
+ egen aay=group(appln_id psn_name year)
+ bysort aay : keep if _n==1
+ 
+ save  "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Combined_renamed.dta",replace
+
 distinct appln_id
 distinct psn_name
 preserve
@@ -35,6 +42,7 @@ bysort psn_name : egen nbap_psn_name=nvals(appln_id)
 bysort psn_name : keep if _n==1
 tab nbap_psn_name
 restore
+
 
 use "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Cent_psn_detail_FRANCE_yearly.dta",clear
  gsort - cent_scale 
@@ -45,10 +53,6 @@ su pctile if psn_sector=="UNIVERSITY"
 su pctile if psn_sector=="UNIVERSITY" & year<1999
 su pctile if psn_sector=="UNIVERSITY" & year>=1999 & year<2007
 su pctile if psn_sector=="UNIVERSITY" & year>=2007 
-
-
-
-
 
 
 *********Tables

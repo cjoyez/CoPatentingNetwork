@@ -94,7 +94,6 @@ preserve /*Fr U vs DE U TIME1*/
 xtset psn_name_code year
 keep if year<2008
 keep if psn_sector=="UNIVERSITY"
-*capt drop treated
 gen treatment1=. 
 replace treatment1=0 if psn_sector=="UNIVERSITY"
 replace treatment1=1 if psn_sector=="UNIVERSITY" & country=="FRANCE" & year>1999 & year<2008
@@ -145,7 +144,6 @@ preserve
 xtset psn_name_code year
 keep if year>1999
 keep if psn_sector=="UNIVERSITY"
-*capt drop treated
 gen treatment2=. /*Fr U vs DE U*/
 replace treatment2=0 if psn_sector=="UNIVERSITY"
 replace treatment2=1 if psn_sector=="UNIVERSITY" & country=="FRANCE" & year>2008

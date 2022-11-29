@@ -1,3 +1,5 @@
+
+*Import Patstat Extracts, and convert them to Stata files
 clear
 foreach C in De Fr It {
 	foreach S in Univ GovNon {
@@ -10,6 +12,7 @@ foreach C in De Fr It {
 	}
 }
 
+*Append Stata files
 clear
 foreach C in De Fr It {
 noi di "`C'"
@@ -46,6 +49,7 @@ use "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\New_all.dta"
 append using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\Dataset_ALL - ALLYEARS_FOREIGN.dta" /*initial 2 only GE and IT collaborations with firms*/
 append using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\Dataset_ALL - ALLYEARS.dta" /*initial 1 only Fr collaborations with firms*/
 
+*Clear sectors
 drop if psn_sector=="UNKNOWN"
 replace psn_sector="UNIVERSITY" if psn_sector=="GOV NON-PROFIT UNIVERSITY" &  person_ctry_code=="FR" & country_obs=="FRANCE"
 replace psn_sector="HOSPITAL" if psn_sector=="COMPANY HOSPITAL"
@@ -64,27 +68,10 @@ replace psn_sector="foreign_company" if psn_sector=="COMPANY" &  person_ctry_cod
 
 tab psn_sector
 
-
-duplicates tag appln_id appln_auth appln_nr appln_filing_year psn_name techn_field country_obs,gen(duplicate)
-tab dup
-tab dup source
-tab nb_app source
-distinct appln_id
-bro if dup>0
-tab dup if appln_id==16606442
-bysort appln_id : gen dupabove=(dup>0)
-bro if dupabove==1
-tab duplic
-bysort appln_id appln_auth appln_nr appln_filing_year psn_name techn_field country_obs : replace duplic=0 if _n==1
-tab duplic
-distinct appln_id
-drop if duplic>0
-distinct appln_id
-save  "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Combined.dta",replace
-use  "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Combined.dta",clear
-distinct appln_id
-*keep if year>=1983
-*bysort appln_id: egen nbapplicant2=nvals(psn_name)
-drop if nb_app<2
+drop if nb_app<2 /*number of applicant by patent should be at least of 2*/
 tab nb_app
+
+*check for  dupplicates
+duplicates tag appln_id appln_auth appln_nr appln_filing_year psn_name techn_field country_obs,gen(duplicate)
+
 save  "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Combined.dta",replace
