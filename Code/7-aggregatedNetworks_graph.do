@@ -27,6 +27,11 @@ mata matnbactor=J(40,1,.)
 
 
 use "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Combined_renamed.dta",clear
+*drop dupplicates 
+ capt drop aay
+ egen aay=group(appln_id psn_name year)
+ bysort aay : keep if _n==1
+ 
 capt drop timeperiod
 gen timeperiod=1
 replace timeperiod=2 if year>1999
@@ -319,6 +324,11 @@ mata mattotappU=J(40,1,.)
 mata matnbactor=J(40,1,.)
 
 use "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Combined_renamed.dta"
+*drop dupplicates 
+ capt drop aay
+ egen aay=group(appln_id psn_name year)
+ bysort aay : keep if _n==1
+ 
 capt drop timeperiod
 gen timeperiod=1
 replace timeperiod=2 if year>1999

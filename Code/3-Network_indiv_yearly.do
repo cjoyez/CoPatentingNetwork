@@ -30,6 +30,7 @@ mata mattotappU=J(40,1,.)
 
 use "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Combined_renamed.dta",clear
 *drop dupplicates (same patent but registered in two techn_field)
+ capt drop aay
  egen aay=group(appln_id psn_name year)
  bysort aay : keep if _n==1
  
@@ -108,7 +109,7 @@ gen cent_scale=cent/cent_total*100
 su cent_scale
 nwsummarize
 
-nwbetween
+
 
   keep  psn_name_code _* psn_name _degree nnodes _strength cent cent_total cent_scale 
   nwbetween
@@ -118,6 +119,7 @@ merge m:m psn_name using  "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata
 keep if _m==3
 keep if country_obs=="FRANCE"
 keep if year==`y'
+
 
 
 
@@ -134,10 +136,11 @@ bysort  psn_name : egen pat_volume=mean(nbapp_psn)
 bysort  psn_name : egen pat_innov=mean(sh_granted_psn)
 bysort psn_name : egen pat_divtechn=nvals(techn_field) 
 
-xtile qcite=nb_citing_docdb_fam,nq(5)
+capture xtile qcite=nb_citing_docdb_fam,nq(5)
 gen highqualitypatent=.
-replace highqualitypatent=1 if qcite==5
-replace highqualitypatent=0 if qcite<5
+capture replace highqualitypatent=1 if qcite==5
+capture replace highqualitypatent=0 if qcite<5 
+replace highqualitypatent=0 if highqualitypatent==.
 
 bysort  psn_name : egen nbpathq=total(highqualitypatent)
 gen shpathq=nbpathq/nbapp_psn
@@ -157,13 +160,15 @@ su cent_scale if psn_sector=="UNIVERSITY"
   keep _* _bet shpathq nbpathq   timeperiod year pat_econvalue sh_nbapp pat_quality pat_volume pat_innov pat_divtechn nbapp_psn nbapp_psn nbapp_granted_psn sh_granted_psn NUTS nuts_label  psn_name_code psn_sector psn_name _degree nnodes _strength cent cent_total cent_scale div_techn country source docdb_family_size nb_citing_docdb_fam
  count
  nwsummarize
- drop _1* _2* _3* _4* _5* _6* _7* _8* _9*
+ forvalues v=1/9{
+ 	capture drop _`v'*
+ }
 
 
 
  gsort - cent_scale
  gen rank_cent=_n
- bro if psn_sector=="UNIVERSITY"
+ *bro if psn_sector=="UNIVERSITY"
  egen nbtotappUniv = total(nbapp_psn) if psn_sector=="UNIVERSITY"
  egen sh_nbapp_Univ = total(sh_nbapp) if psn_sector=="UNIVERSITY"
 
@@ -339,6 +344,7 @@ mata mattotappU=J(40,1,.)
 
 use "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Combined_renamed.dta",clear
 *drop dupplicates 
+ capt drop aay
  egen aay=group(appln_id psn_name year)
  bysort aay : keep if _n==1
  
@@ -375,6 +381,7 @@ drop if psn_name==""
 encode psn_name,gen(psn_name_code)
 
 forvalues y=1979(1)2018{
+*local y=1979
 local n=`y'-1978
 preserve
 keep if year==`y' | year==`y'-1
@@ -416,7 +423,6 @@ gen cent_scale=cent/cent_total*100
 su cent_scale
 nwsummarize
 
-nwbetween
 
   keep  psn_name_code _* psn_name _degree nnodes _strength cent cent_total cent_scale 
   nwbetween
@@ -442,10 +448,14 @@ bysort  psn_name : egen pat_volume=mean(nbapp_psn)
 bysort  psn_name : egen pat_innov=mean(sh_granted_psn)
 bysort psn_name : egen pat_divtechn=nvals(techn_field) 
 
-xtile qcite=nb_citing_docdb_fam,nq(5)
+
+
+capture xtile qcite=nb_citing_docdb_fam,nq(5)
 gen highqualitypatent=.
-replace highqualitypatent=1 if qcite==5
-replace highqualitypatent=0 if qcite<5
+capture replace highqualitypatent=1 if qcite==5
+capture replace highqualitypatent=0 if qcite<5 
+replace highqualitypatent=0 if highqualitypatent==.
+
 
 bysort  psn_name : egen nbpathq=total(highqualitypatent)
 gen shpathq=nbpathq/nbapp_psn
@@ -465,13 +475,16 @@ su cent_scale if psn_sector=="UNIVERSITY"
   keep _* _bet shpathq nbpathq   timeperiod year pat_econvalue sh_nbapp pat_quality pat_volume pat_innov pat_divtechn nbapp_psn nbapp_psn nbapp_granted_psn sh_granted_psn NUTS nuts_label  psn_name_code psn_sector psn_name _degree nnodes _strength cent cent_total cent_scale div_techn country source docdb_family_size nb_citing_docdb_fam
  count
  nwsummarize
- drop _1* _2* _3* _4* _5* _6* _7* _8* _9*
+ forvalues v=1/9{
+ noi di "_`v'"
+ 	capture drop _`v'*
+ }
 
 
 
  gsort - cent_scale
  gen rank_cent=_n
- bro if psn_sector=="UNIVERSITY"
+ *bro if psn_sector=="UNIVERSITY"
  egen nbtotappUniv = total(nbapp_psn) if psn_sector=="UNIVERSITY"
  egen sh_nbapp_Univ = total(sh_nbapp) if psn_sector=="UNIVERSITY"
 

@@ -30,6 +30,7 @@ log on
 use "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Combined_renamed.dta",clear
 
 *drop dupplicates (same patent but registered in two techn_field)
+ capt drop aay
  egen aay=group(appln_id psn_name year)
  bysort aay : keep if _n==1
  
