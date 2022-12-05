@@ -11,4 +11,7 @@ replace psn_rename=psn_name if psn_rename==""
 rename psn_name psn_name_ini
 rename psn_rename psn_name
 drop _merge
+
+
+
 save "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\Combined_renamed.dta",replace

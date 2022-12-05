@@ -13,7 +13,6 @@ encode NUTS,gen(NUTS_code)
 drop NUTS
 
 
-
 gen time1=.
 replace time1=0 if timeperiod==1
 replace time1=1 if timeperiod==2
@@ -40,6 +39,7 @@ replace nbUniv_y_c=0 if nbUniv_y_c==.
 
 *Passer les variables de controle en log
 gen lcent_sc=ln((cent_sc*100)+1)
+histogram lcent_sc if country=="FRANCE"
 gen lcent=ln(cent+1)
 gen lpat_econvalue=ln(pat_econvalue+1)
 gen lpat_quality=ln(pat_quality+1)
@@ -48,29 +48,36 @@ gen lpat_divtechn=ln(pat_divtechn+1)
 gen lnbUniv=ln(nbUniv+1)
 
 
-
+bysort psn_name_code year : gen nrep2=_N
+tab nrep2
+bysort psn_name_code year country : gen nrep3=_N
+tab nrep3
 gen tokeep=0
 replace tokeep=1 if country=="FRANCE" & psn_sector=="UNIVERSITY"
 replace tokeep=1 if country=="FRANCE" & psn_sector=="GOV NON-PROFIT"
 replace tokeep=1 if country=="GERMANY" & psn_sector=="UNIVERSITY"
 keep if tokeep==1
-bysort psn_name_code year : gen nrep2=_N
-tab nrep2
+
+capt drop anci
+bysort psn_name (year) : gen ancienete=year[_n]-year[1] 
+
+
+
+/*
 bro if nrep2==1
 sort psn_name_code year
 bro if nrep2==1
 bro if nrep2==2
-drop if psn_name=="UNIVERSITE DE RENNES 1" & country=="GERMANY"
-
-
-
+*/
+corr lcent_sc pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien
 
 ****Diff in Diff
 
 preserve /*Fr U vs Fr PRO TIME1*/
-xtset psn_name_code year
+
 keep if year<2008
 keep if country=="FRANCE"
+xtset psn_name_code year
 capt drop treated
 gen treated=. 
 replace treated=1 if psn_sector=="UNIVERSITY" & country_obs=="FRANCE"
@@ -84,16 +91,18 @@ if `sd'<`irange'{
 else{
 	local band=`irange'
 }
-di "bandwith : " `band'
-diff lcent_sc, t(treated) p(time1) cov(nbapp_psn sh_granted_psn pat* shpathq)  addcov(nbapp_psn sh_granted_psn pat* shpathq)  bw(`band')    /* * */
-outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diff.tex",ctitle("DiD","PROs 1999")   tex replace
+noi di "bandwith : " `band'
+su anci
+bysort treated : su anci
+diff lcent_sc, t(treated) p(time1) cov( pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  addcov( pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  bw(`band')    /* * */
+outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diff.tex",ctitle("DiD","PROs 1999") tstat  tex  auto(3) less(1) replace
 restore 
 
 *
 preserve /*Fr U vs DE U TIME1*/
-xtset psn_name_code year
 keep if year<2008
 keep if psn_sector=="UNIVERSITY"
+xtset psn_name_code year
 gen treatment1=. 
 replace treatment1=0 if psn_sector=="UNIVERSITY"
 replace treatment1=1 if psn_sector=="UNIVERSITY" & country=="FRANCE" & year>1999 & year<2008
@@ -106,21 +115,21 @@ if `sd'<`irange'{
 else{
 	local band=`irange'
 }
-di "bandwith : " `band'
+noi di "bandwith : " `band'
 tab treated psn_sector
 tab treated country
 tab treated treatment1
 tab year if treatment1==0 & treated==1
 tab psn_sector if treatment1==0 & treated==1
-diff lcent_sc, t(treated) p(time1) cov(nbapp_psn sh_granted_psn pat* shpathq)  addcov(nbapp_psn sh_granted_psn pat* shpathq)  bw(`band')    /* * */
-outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diff.tex", ctitle("","German U. 1999")   tex
+diff lcent_sc, t(treated) p(time1) cov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  addcov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  bw(`band')    /* * */
+outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diff.tex", ctitle("","German U. 1999") tstat  tex  auto(3) less(1)
 restore 
 
 *
 preserve
-xtset psn_name_code year
 keep if year>1999
 keep if country=="FRANCE"
+xtset psn_name_code year
 capt drop treated
 gen treated=. /*Fr U vs Fr PRO*/
 replace treated=1 if psn_sector=="UNIVERSITY" & country_obs=="FRANCE"
@@ -134,16 +143,16 @@ if `sd'<`irange'{
 else{
 	local band=`irange'
 }
-di "bandwith : " `band'
-diff lcent_sc, t(treated) p(time2) cov(nbapp_psn sh_granted_psn pat* shpathq)  addcov(nbapp_psn sh_granted_psn pat* shpathq)  bw(`band')/* * */
-outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diff.tex", ctitle("","PROs 2007")     tex
+noi di "bandwith : " `band'
+diff lcent_sc, t(treated) p(time2) cov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  addcov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  bw(`band')/* * */
+outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diff.tex", ctitle("","PROs 2007") tstat  tex  auto(3) less(1)  
 restore 
 
 *
 preserve
-xtset psn_name_code year
 keep if year>1999
 keep if psn_sector=="UNIVERSITY"
+xtset psn_name_code year
 gen treatment2=. /*Fr U vs DE U*/
 replace treatment2=0 if psn_sector=="UNIVERSITY"
 replace treatment2=1 if psn_sector=="UNIVERSITY" & country=="FRANCE" & year>2008
@@ -163,9 +172,9 @@ tab treated country
 tab treated treatment2
 tab year if treatment2==0 & treated==1
 tab psn_sector if treatment2==0 & treated==1
-di "bandwith : " `band'
-diff lcent_sc, t(treated) p(time2) cov(nbapp_psn sh_granted_psn pat* shpathq)  addcov(nbapp_psn sh_granted_psn pat* shpathq)  bw(`band')    /* * */
-noi outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diff.tex", ctitle("","German U. 2007") tex
+noi di "bandwith : " `band'
+diff lcent_sc, t(treated) p(time2) cov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  addcov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  bw(`band')    /* * */
+noi outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diff.tex", ctitle("","German U. 2007") tstat  tex  auto(3) less(1)  
 restore 
 
 
@@ -174,9 +183,9 @@ restore
 *epanechnikov kernel function with bandwidth parameter using Silverman's (1986) rule of thumb method
 *
 preserve
-xtset psn_name_code year
 keep if year<2008
 keep if country=="FRANCE"
+xtset psn_name_code year
 capt drop treated
 gen treated=. /*Fr U vs Fr PRO*/
 replace treated=1 if psn_sector=="UNIVERSITY" & country_obs=="FRANCE"
@@ -190,16 +199,19 @@ if `sd'<`irange'{
 else{
 	local band=`irange'
 }
-di "bandwith : " `band'
-diff lcent_sc, t(treated) p(time1) cov(nbapp_psn sh_granted_psn pat* shpathq)  addcov(nbapp_psn sh_granted_psn pat* shpathq)  bw(`band') k id(psn_name_code) kt(gaussian) report /* * */
-outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSM.tex",ctitle("DiD PSM","PROs 1999")   tex replace
+noi di "bandwith : " `band'
+diff lcent_sc, t(treated) p(time1) cov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  addcov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  bw(`band') k id(psn_name_code) kt(gaussian) report /* * */
+*teffects psmatch (treated) (time1 nbapp_psn sh_granted_psn pat* shpathq)
+*tebalance summarize
+* table treated [pweight=_ps],c(mean cent_sc mean pat_volume)
+outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSM.tex",ctitle("DiD PSM","PROs 1999") tstat  tex  auto(3) less(1) replace
 restore 
 
 *
 preserve
-xtset psn_name_code year
 keep if year<2008
 keep if psn_sector=="UNIVERSITY"
+xtset psn_name_code year
 *capt drop treated
 gen treatment1=. /*Fr U vs DE U*/
 replace treatment1=0 if psn_sector=="UNIVERSITY"
@@ -213,22 +225,22 @@ if `sd'<`irange'{
 else{
 	local band=`irange'
 }
-di "bandwith : " `band'
+noi di "bandwith : " `band'
 tab treated psn_sector
 tab treated country
 tab treated treatment1
 tab year if treatment1==0 & treated==1
 tab psn_sector if treatment1==0 & treated==1
-diff lcent_sc, t(treated) p(time1) cov(nbapp_psn sh_granted_psn pat* shpathq)  addcov(nbapp_psn sh_granted_psn pat* shpathq) bw(`band') k id(psn_name_code) kt(gaussian) report /* * */
-outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSM.tex",ctitle("","German U. 1999")  tex 
+diff lcent_sc, t(treated) p(time1) cov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  addcov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien) bw(`band') k id(psn_name_code) kt(gaussian) report /* * */
+outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSM.tex",ctitle("","German U. 1999")tstat  tex  auto(3) less(1) 
 
 restore 
 
 *
 preserve
-xtset psn_name_code year
 keep if year>1999
 keep if country=="FRANCE"
+xtset psn_name_code year
 capt drop treated
 gen treated=. /*Fr U vs Fr PRO*/
 replace treated=1 if psn_sector=="UNIVERSITY" & country_obs=="FRANCE"
@@ -242,17 +254,17 @@ if `sd'<`irange'{
 else{
 	local band=`irange'
 }
-di "bandwith : " `band'
-diff lcent_sc, t(treated) p(time2) cov(nbapp_psn sh_granted_psn pat* shpathq)  addcov(nbapp_psn sh_granted_psn pat* shpathq)  bw(`band') k id(psn_name_code) kt(gaussian) report /* * */
-outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSM.tex",ctitle("","PROs 2007") tex 
+noi di "bandwith : " `band'
+diff lcent_sc, t(treated) p(time2) cov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  addcov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  bw(`band') k id(psn_name_code) kt(gaussian) report /* * */
+outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSM.tex",ctitle("","PROs 2007") tstat  tex  auto(3) less(1)  
 
 restore 
 
 *
 preserve
-xtset psn_name_code year
 keep if year>1999
 keep if psn_sector=="UNIVERSITY"
+xtset psn_name_code year
 *capt drop treated
 gen treatment2=. /*Fr U vs DE U*/
 replace treatment2=0 if psn_sector=="UNIVERSITY"
@@ -273,9 +285,9 @@ tab treated country
 tab treated treatment2
 tab year if treatment2==0 & treated==1
 tab psn_sector if treatment2==0 & treated==1
-di "bandwith : " `band'
-diff lcent_sc, t(treated) p(time2) cov(nbapp_psn sh_granted_psn pat* shpathq)  addcov(nbapp_psn sh_granted_psn pat* shpathq)  bw(`band') k id(psn_name_code) kt(gaussian) report /* * */
- outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSM.tex",ctitle("","German U. 2007") tex 
+noi di "bandwith : " `band'
+diff lcent_sc, t(treated) p(time2) cov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  addcov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  bw(`band') k id(psn_name_code) kt(gaussian) report /* * */
+ outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSM.tex",ctitle("","German U. 2007") tstat  tex  auto(3) less(1)  
 
 restore 
 
@@ -287,9 +299,9 @@ restore
 *epanechnikov kernel function with bandwidth parameter using Silverman's (1986) rule of thumb method
 *
 preserve
-xtset psn_name_code year
 keep if year<2008
 keep if country=="FRANCE"
+xtset psn_name_code year
 capt drop treated
 gen treated=. /*Fr U vs Fr PRO*/
 replace treated=1 if psn_sector=="UNIVERSITY" & country_obs=="FRANCE"
@@ -303,17 +315,17 @@ if `sd'<`irange'{
 else{
 	local band=`irange'
 }
-di "bandwith : " `band'
-diff lcent_sc, t(treated) p(time1) cov(nbapp_psn sh_granted_psn pat* shpathq)  addcov(nbapp_psn sh_granted_psn pat* shpathq)  bw(`band') k id(psn_name_code) kt(gaussian) report support /* * */
-outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSMcs.tex",ctitle("PSM DiD common support","PROs 1999")   tex replace
+noi di "bandwith : " `band'
+diff lcent_sc, t(treated) p(time1) cov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  addcov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  bw(`band') k id(psn_name_code) kt(gaussian) report support /* * */
+outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSMcs.tex",ctitle("PSM DiD common support","PROs 1999") tstat  tex  auto(3) less(1) replace
 
 restore 
 
 *
 preserve
-xtset psn_name_code year
 keep if year<2008
 keep if psn_sector=="UNIVERSITY"
+xtset psn_name_code year
 *capt drop treated
 gen treatment1=. /*Fr U vs DE U*/
 replace treatment1=0 if psn_sector=="UNIVERSITY"
@@ -327,22 +339,22 @@ if `sd'<`irange'{
 else{
 	local band=`irange'
 }
-di "bandwith : " `band'
+noi di "bandwith : " `band'
 tab treated psn_sector
 tab treated country
 tab treated treatment1
 tab year if treatment1==0 & treated==1
 tab psn_sector if treatment1==0 & treated==1
-diff lcent_sc, t(treated) p(time1) cov(nbapp_psn sh_granted_psn pat* shpathq)  addcov(nbapp_psn sh_granted_psn pat* shpathq) bw(`band') k id(psn_name_code) kt(gaussian) report support /* * */
-outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSMcs.tex",ctitle("","German U. 1999")   tex 
+diff lcent_sc, t(treated) p(time1) cov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  addcov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien) bw(`band') k id(psn_name_code) kt(gaussian) report support /* * */
+outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSMcs.tex",ctitle("","German U. 1999") tstat  tex  auto(3) less(1) 
 
 restore 
 
 *
 preserve
-xtset psn_name_code year
 keep if year>1999
 keep if country=="FRANCE"
+xtset psn_name_code year
 capt drop treated
 gen treated=. /*Fr U vs Fr PRO*/
 replace treated=1 if psn_sector=="UNIVERSITY" & country_obs=="FRANCE"
@@ -356,17 +368,17 @@ if `sd'<`irange'{
 else{
 	local band=`irange'
 }
-di "bandwith : " `band'
-diff lcent_sc, t(treated) p(time2) cov(nbapp_psn sh_granted_psn pat* shpathq)  addcov(nbapp_psn sh_granted_psn pat* shpathq)  bw(`band') k id(psn_name_code) kt(gaussian) report support /* * */
-outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSMcs.tex", ctitle("","PROs 2007")   tex 
+noi di "bandwith : " `band'
+diff lcent_sc, t(treated) p(time2) cov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  addcov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  bw(`band') k id(psn_name_code) kt(gaussian) report support /* * */
+outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSMcs.tex", ctitle("","PROs 2007") tstat  tex  auto(3) less(1) 
 
 restore 
 
 *
 preserve
-xtset psn_name_code year
 keep if year>1999
 keep if psn_sector=="UNIVERSITY"
+xtset psn_name_code year
 *capt drop treated
 gen treatment2=. /*Fr U vs DE U*/
 replace treatment2=0 if psn_sector=="UNIVERSITY"
@@ -387,9 +399,9 @@ tab treated country
 tab treated treatment2
 tab year if treatment2==0 & treated==1
 tab psn_sector if treatment2==0 & treated==1
-di "bandwith : " `band'
-diff lcent_sc, t(treated) p(time2) cov(nbapp_psn sh_granted_psn pat* shpathq)  addcov(nbapp_psn sh_granted_psn pat* shpathq)  bw(`band') k id(psn_name_code) kt(gaussian) report support /* * */
-outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSMcs.tex", ctitle("","German U. 2007")   tex 
+noi di "bandwith : " `band'
+diff lcent_sc, t(treated) p(time2) cov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  addcov(pat_econvalue pat_quality pat_volume pat_innov pat_divtechn shpathq ancien)  bw(`band') k id(psn_name_code) kt(gaussian) report support /* * */
+outreg2 using "C:\Users\cjoyez\Desktop\Gredeg\Isabel Patstat\newdata\output\reg_nov22_diffPSMcs.tex", ctitle("","German U. 2007") tstat  tex  auto(3) less(1) 
 
 restore 
 log close
